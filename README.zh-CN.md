@@ -2,14 +2,22 @@
 
 > Install Grok Space on this Mac: https://github.com/onehumanbeing/grok-space/blob/main/INSTALL.md
 
-[![Checks](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml)
+<div align="center">
 
 <img src="assets/grok-space.png" width="128" height="128" alt="Grok Space 项目标志">
 
 给现有 Grok Bot 增加可保存的 HTML 工作空间。Grok 编写页面和业务代码；本项目只做
-Mac 薄窗口、持久状态及交互记录与结果回传。
+Mac 薄窗口、持久状态及交互记录与结果回传，不改动 Grok 客户端。
 
-[English](README.md) · [HTML SDK](web/README.md) · [架构](ARCHITECTURE.md)
+[English](README.md) · 简体中文
+
+Henry · [X @iamhenryyuan](https://x.com/iamhenryyuan) · [小红书 袁老板讲黑客松（Henry）](https://www.xiaohongshu.com/user/profile/5eb444030000000001000194)
+
+[![Checks](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml)
+
+</div>
+
+[HTML SDK](web/README.md) · [架构](ARCHITECTURE.md)
 
 [最小页面与处理器](examples/minimal/README.md) · [验证记录](docs/verification.md) · [MIT 许可](LICENSE)
 
@@ -67,6 +75,3 @@ Grok 编写本地 Python 处理器，通过 `action worker register` 注册允�
 
 [贡献](CONTRIBUTING.md) · [支持](SUPPORT.md) · [安全](SECURITY.md) ·
 [更新记录](CHANGELOG.md) · [社区规范](CODE_OF_CONDUCT.md)
-
-Henry · [X @iamhenryyuan](https://x.com/iamhenryyuan) ·
-[小红书](https://www.xiaohongshu.com/user/profile/5eb444030000000001000194)

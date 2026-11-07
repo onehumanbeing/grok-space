@@ -2,7 +2,7 @@
 
 > Install Grok Space on this Mac: https://github.com/onehumanbeing/grok-space/blob/main/INSTALL.md
 
-[![Checks](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml)
+<div align="center">
 
 <img src="assets/grok-space.png" width="128" height="128" alt="Grok Space project logo">
 
@@ -10,7 +10,15 @@ Persistent HTML workspaces for your existing Grok Bot on macOS. Grok writes the
 page and its business logic; this project supplies a small host, saved state and
 an action/result bridge. The signed Grok app remains intact.
 
-[简体中文](README.zh-CN.md) · [Author SDK](web/README.md) · [Architecture](ARCHITECTURE.md)
+English · [简体中文](README.zh-CN.md)
+
+Built by Henry · [X @iamhenryyuan](https://x.com/iamhenryyuan)
+
+[![Checks](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml)
+
+</div>
+
+[Author SDK](web/README.md) · [Architecture](ARCHITECTURE.md)
 
 [Minimal page and handler](examples/minimal/README.md) · [Verification](docs/verification.md) · [MIT license](LICENSE)
 
@@ -155,6 +163,3 @@ Released under the [MIT license](LICENSE). The companion is an independent
 project; it does not modify or redistribute the Grok client. Native Pages
 one-click publication remains planned; the local foundation works independently
 of that connection.
-
-Built by Henry · [X @iamhenryyuan](https://x.com/iamhenryyuan) ·
-[Xiaohongshu](https://www.xiaohongshu.com/user/profile/5eb444030000000001000194)

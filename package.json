@@ -1,5 +1,5 @@
 {
-  "name": "grok-space-dev-checks",
+  "name": "grok-spaces-dev-checks",
   "private": true,
   "description": "Optional browser checks only; the application has no Node runtime dependency.",
   "license": "MIT",

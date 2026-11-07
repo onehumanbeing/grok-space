@@ -166,9 +166,9 @@ def smoke(app, timeout):
         with (app / "Contents/Info.plist").open("rb") as source:
             info = plistlib.load(source)
     except (OSError, ValueError, plistlib.InvalidFileException) as exc:
-        raise SmokeFailure("app_missing", "Build the native app first or pass --app with a built Grok Spaces bundle.") from exc
+        raise SmokeFailure("app_missing", "Build the native app first or pass --app with a built GrokSpaces bundle.") from exc
     if info.get("CFBundleIdentifier") != "sh.henry.grok-spaces" or not executable.is_file() or not os.access(executable, os.X_OK):
-        raise SmokeFailure("invalid_app", "The selected bundle is not an executable Grok Spaces app.")
+        raise SmokeFailure("invalid_app", "The selected bundle is not an executable GrokSpaces app.")
     icon = verify_icon(app, info)
     with tempfile.TemporaryDirectory(prefix="grok-space-native-smoke-") as directory:
         temporary = Path(directory).resolve()

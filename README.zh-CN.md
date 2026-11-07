@@ -1,10 +1,10 @@
-# Grok Space
+# Grok Spaces
 
-> Install Grok Space on this Mac: https://github.com/onehumanbeing/grok-space/blob/main/INSTALL.md
+> Install Grok Spaces on this Mac: https://github.com/onehumanbeing/grok-spaces/blob/main/INSTALL.md
 
 <div align="center">
 
-<img src="assets/grok-space.png" width="128" height="128" alt="Grok Space 项目标志">
+<img src="assets/grok-space.png" width="128" height="128" alt="Grok Spaces 项目标志">
 
 给现有 Grok Bot 增加可保存的 HTML 工作空间。Grok 编写页面和业务代码；本项目只做
 Mac 薄窗口、持久状态及交互记录与结果回传，不改动 Grok 客户端。
@@ -13,7 +13,7 @@ Mac 薄窗口、持久状态及交互记录与结果回传，不改动 Grok 客�
 
 Henry · [X @iamhenryyuan](https://x.com/iamhenryyuan) · [小红书 袁老板讲黑客松（Henry）](https://www.xiaohongshu.com/user/profile/5eb444030000000001000194)
 
-[![Checks](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml)
+[![Checks](https://github.com/onehumanbeing/grok-spaces/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/grok-spaces/actions/workflows/ci.yml)
 
 </div>
 
@@ -38,6 +38,8 @@ quarantine 或关闭 Gatekeeper。写入必须带实际读取的 revision，不�
 也不证明已连接 Bot 或通过原生应用验收。
 
 需要 macOS 14+、Xcode Command Line Tools，以及能在这台 Mac 官方本地执行命令的 Grok Bot。
+
+为兼容已有 Bot 配置，CLI 继续使用原名称 `grok-space`。
 
 ```bash
 ./scripts/build-app.sh

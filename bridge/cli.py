@@ -308,7 +308,7 @@ def health_summary(store, probe=False):
             service = {"status": "not_running"}
     status = "attention" if (service["status"] == "different_or_unverified_installation"
                               or service.get("version_matches_cli") is False) else "ready"
-    summary = "Grok Space {} · local storage OK · {} Spaces · Bots: {}".format(
+    summary = "Grok Spaces {} · local storage OK · {} Spaces · Bots: {}".format(
         VERSION, len(spaces), ", ".join(bot["name"] for bot in bots) or "none")
     if probe:
         summary += " · service " + service["status"]

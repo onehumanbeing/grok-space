@@ -1,10 +1,10 @@
-# Grok Space
+# Grok Spaces
 
-> Install Grok Space on this Mac: https://github.com/onehumanbeing/grok-space/blob/main/INSTALL.md
+> Install Grok Spaces on this Mac: https://github.com/onehumanbeing/grok-spaces/blob/main/INSTALL.md
 
 <div align="center">
 
-<img src="assets/grok-space.png" width="128" height="128" alt="Grok Space project logo">
+<img src="assets/grok-space.png" width="128" height="128" alt="Grok Spaces project logo">
 
 Persistent HTML workspaces for your existing Grok Bot on macOS. Grok writes the
 page and its business logic; this project supplies a small host, saved state and
@@ -14,7 +14,7 @@ English · [简体中文](README.zh-CN.md)
 
 Built by Henry · [X @iamhenryyuan](https://x.com/iamhenryyuan)
 
-[![Checks](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml)
+[![Checks](https://github.com/onehumanbeing/grok-spaces/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/grok-spaces/actions/workflows/ci.yml)
 
 </div>
 
@@ -47,6 +47,8 @@ a Bot, or establish native-app acceptance.
 
 Requires macOS 14+, Xcode Command Line Tools (Swift and `/usr/bin/python3`), and
 Grok Bot with official execution access to this Mac. No package install is needed.
+
+The CLI keeps its legacy name `grok-space` for compatibility with existing Bot setups.
 
 ```bash
 ./scripts/build-app.sh

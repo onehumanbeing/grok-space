@@ -260,7 +260,7 @@ class InstallerTests(unittest.TestCase):
         self.assertFalse(self.prefix.exists())
 
     def test_public_fetch_needs_no_github_login_or_inherited_credentials(self):
-        built = self.bundle("public")
+        built = self.bundle("0.1.1")
         source = self.folder / "public source"
         for name in ("bridge", "web", "native", "scripts"):
             (source / name).mkdir(parents=True)
@@ -289,14 +289,15 @@ class InstallerTests(unittest.TestCase):
         fake_gh = tools / "gh"
         fake_gh.write_text('#!/bin/sh\nexit 99\n')
         fake_gh.chmod(0o755)
-        result = self.install(None, "--repo", "public-owner/public-source", "--ref", "v0.1.0", env={
+        result = self.install(None, "--repo", "onehumanbeing/grok-spaces", "--ref", "v0.1.1", env={
             "PATH": str(tools) + ":/usr/bin:/bin", "HOME": str(self.folder), "INSTALL_TEST_SENTINEL": "must-not-inherit"})
         self.assertEqual(result["source"]["transport"], "public_https")
         self.assertEqual(result["source"]["source_commit"], "a" * 40)
-        self.assertEqual(self.version(), "public")
+        self.assertEqual(self.version(), "0.1.1")
         commands = [json.loads(line) for line in calls.read_text().splitlines()]
         self.assertEqual([command[0] for command in commands], ["clone", "fetch", "checkout"])
-        self.assertIn("https://github.com/public-owner/public-source.git", commands[0])
+        self.assertIn("https://github.com/onehumanbeing/grok-spaces.git", commands[0])
+        self.assertEqual(commands[1], ["fetch", "--depth", "1", "origin", "v0.1.1"])
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
-# Install Grok Space on this Mac
+# Install Grok Spaces on this Mac
 
 Give your existing Grok Bot this sentence:
 
-> Install Grok Space on this Mac: https://github.com/onehumanbeing/grok-space/blob/main/INSTALL.md
+> Install Grok Spaces on this Mac: https://github.com/onehumanbeing/grok-spaces/blob/main/INSTALL.md
 
-The canonical source is `onehumanbeing/grok-space`, branch `main`. For a versioned
+The canonical source is `onehumanbeing/grok-spaces`, branch `main`. For a versioned
 installation, use a released tag such as `v0.1.0` in both the document link and
 checkout. Verify that the requested ref exists; a branch name is not a signed
 release. Report the version actually returned by the installed CLI, rather than
@@ -77,8 +77,8 @@ selected remote ref itself. It first tries credential-free HTTPS Git with prompt
 disabled; only a failed public fetch tries existing authorized `gh` access:
 
 ```bash
-./scripts/install.sh --repo onehumanbeing/grok-space --ref main --check
-./scripts/install.sh --repo onehumanbeing/grok-space --ref main
+./scripts/install.sh --repo onehumanbeing/grok-spaces --ref main --check
+./scripts/install.sh --repo onehumanbeing/grok-spaces --ref main
 ```
 
 For a fresh public checkout after publication:
@@ -87,7 +87,7 @@ For a fresh public checkout after publication:
 install_checkout=$(mktemp -d /tmp/grok-space-source.XXXXXX)
 GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0 \
   GIT_ASKPASS=/usr/bin/false git clone --depth 1 --branch main \
-  https://github.com/onehumanbeing/grok-space.git "$install_checkout/source"
+  https://github.com/onehumanbeing/grok-spaces.git "$install_checkout/source"
 ```
 
 Only after clone succeeds, follow step 5 in that checkout. No GitHub account is
@@ -100,7 +100,7 @@ and in the checkout; this example selects `main`:
 ```bash
 install_docs=$(mktemp -d /tmp/grok-space-instructions.XXXXXX)
 gh api -H 'Accept: application/vnd.github.raw+json' \
-  'repos/onehumanbeing/grok-space/contents/INSTALL.md?ref=main' \
+  'repos/onehumanbeing/grok-spaces/contents/INSTALL.md?ref=main' \
   > "$install_docs/INSTALL.md"
 ```
 

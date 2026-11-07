@@ -23,7 +23,7 @@ temporary diagnostics; it never installs or launches an app.
 To fetch a public tag, branch or commit without GitHub authentication:
 
 ```bash
-./scripts/install.sh --repo onehumanbeing/grok-space --ref main
+./scripts/install.sh --repo onehumanbeing/grok-spaces --ref main
 ```
 
 The installer tries HTTPS Git with a minimal environment, credential helpers and

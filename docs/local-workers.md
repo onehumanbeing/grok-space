@@ -2,7 +2,7 @@
 
 A local worker lets a registered action execute and return a result to the same
 Space without copying a prompt or the host starting a model run. Grok authors the handler;
-Grok Space supplies action storage, dispatch, revision checks and result delivery.
+Grok Spaces supplies action storage, dispatch, revision checks and result delivery.
 This is separate from publishing a native Grok Page. Native Pages publishing is
 not connected by registering a local worker.
 

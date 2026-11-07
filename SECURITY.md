@@ -1,7 +1,7 @@
 # Security
 
 Report vulnerabilities privately through
-[GitHub's advisory form](https://github.com/onehumanbeing/grok-space/security/advisories/new).
+[GitHub's advisory form](https://github.com/onehumanbeing/grok-spaces/security/advisories/new).
 Private reporting must be enabled before public release. If that form is
 unavailable, use a private channel already agreed with the owner; do not put
 exploit details in a public issue. Include the source version, affected boundary,

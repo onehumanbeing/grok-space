@@ -2,7 +2,7 @@
 # Build and install locally. No sudo, credential export, or Gatekeeper bypass.
 set -eu
 if [ "$(uname -s)" != Darwin ]; then
-  printf '%s\n' '{"ok":false,"code":"unsupported_os","error":"Grok Space currently supports macOS only. Windows and Linux are unsupported."}' >&2
+  printf '%s\n' '{"ok":false,"code":"unsupported_os","error":"Grok Spaces currently supports macOS only. Windows and Linux are unsupported."}' >&2
   exit 2
 fi
 if [ ! -x /usr/bin/python3 ]; then
@@ -29,7 +29,7 @@ from pathlib import Path
 SCRIPT = Path(sys.argv.pop(1)).resolve()
 APP_NAME = "Grok Spaces.app"
 BUNDLE_ID = "sh.henry.grok-spaces"
-REPOSITORY = "onehumanbeing/grok-space"
+REPOSITORY = "onehumanbeing/grok-spaces"
 
 
 class InstallError(Exception):
@@ -234,7 +234,7 @@ def source_tree(args, temporary):
     else:
         source = args.source or SCRIPT.parent.parent
     if not all((source / name).exists() for name in ("bridge/server.py", "web", "native", "scripts/build-app.sh", "scripts/grok-space")):
-        raise InstallError("source_missing", "A complete source checkout is required. Use --repo onehumanbeing/grok-space --ref REF to fetch an authorized revision.")
+        raise InstallError("source_missing", "A complete source checkout is required. Use --repo onehumanbeing/grok-spaces --ref REF to fetch an authorized revision.")
     icon = source_icon(source)
     try:
         revision = run(["git", "rev-parse", "HEAD"], cwd=source, timeout=15).strip()
@@ -395,7 +395,7 @@ def install(args, environment):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build/install Grok Space locally without sudo or account sign-in")
+    parser = argparse.ArgumentParser(description="Build/install Grok Spaces locally without sudo or account sign-in")
     parser.add_argument("--check", action="store_true", help="Reuse a healthy installed app, or check installation prerequisites; never read user data")
     parser.add_argument("--no-launch", action="store_true", help="Install without asking macOS to open the app")
     parser.add_argument("--prefix", type=Path, default=Path.home(), help="Installation root; isolated prefixes never auto-launch")

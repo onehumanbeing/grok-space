@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-11-07
+
+- Rename the project and canonical repository to **Grok Spaces** /
+  `onehumanbeing/grok-spaces`; update installation instructions and public links.
+- Center the logo and place language switching and author links at the top of
+  both READMEs. Chinese includes X and Xiaohongshu.
+- Preserve the `grok-space` CLI, existing app/data paths, scheme and identifiers
+  so installed Bots and saved Spaces keep working.
+
 ## 0.1.0 — 2026-11-07
 
 Initial source release. See the repository's actual tag and release for the

@@ -1,6 +1,6 @@
 # Architecture
 
-Grok owns application authoring and business logic. Grok Space owns only the
+Grok owns application authoring and business logic. Grok Spaces owns only the
 local host, persistence, revision checks and action/result transport.
 
 ```mermaid

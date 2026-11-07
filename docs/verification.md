@@ -20,7 +20,7 @@ dependencies passed `npm audit --audit-level=high` with no reported vulnerabilit
 at the time of this check.
 
 CI repeats Python, browser, build, signature, packaged CLI and native startup
-checks on the exact source commit. Consult the [actual workflow runs](https://github.com/onehumanbeing/grok-space/actions/workflows/ci.yml)
+checks on the exact source commit. Consult the [actual workflow runs](https://github.com/onehumanbeing/grok-spaces/actions/workflows/ci.yml)
 for results; this record is not a substitute for checking a later commit.
 The macOS 15.8.2 arm64 runner also passed the full suite and native startup
 check. This establishes CI execution there, not a live Grok account connection.

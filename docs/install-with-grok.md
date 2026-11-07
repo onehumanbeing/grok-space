@@ -3,7 +3,7 @@
 Send this in the **front chat of the Bot you want to use**, with official local
 execution pointed at this Mac:
 
-> Install Grok Space on this Mac: https://github.com/onehumanbeing/grok-space/blob/main/INSTALL.md
+> Install Grok Spaces on this Mac: https://github.com/onehumanbeing/grok-spaces/blob/main/INSTALL.md
 
 The canonical source is `main`; a released tag such as `v0.1.0` can replace it in
 both the document URL and checkout. Public source installation needs Git and
@@ -14,7 +14,7 @@ already authorized GitHub CLI. This example selects `main`:
 ```bash
 install_docs=$(mktemp -d /tmp/grok-space-instructions.XXXXXX)
 gh api -H 'Accept: application/vnd.github.raw+json' \
-  'repos/onehumanbeing/grok-space/contents/INSTALL.md?ref=main' \
+  'repos/onehumanbeing/grok-spaces/contents/INSTALL.md?ref=main' \
   > "$install_docs/INSTALL.md"
 ```
 

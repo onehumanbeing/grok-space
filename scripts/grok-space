@@ -1,0 +1,27 @@
+#!/bin/sh
+# Relocatable launcher: source checkout, app Resources, or a symlink on PATH.
+set -eu
+
+launcher_path=$0
+while [ -L "$launcher_path" ]; do
+  launcher_dir=$(CDPATH= cd -- "$(dirname -- "$launcher_path")" && pwd)
+  launcher_target=$(readlink "$launcher_path")
+  case "$launcher_target" in
+    /*) launcher_path=$launcher_target ;;
+    *) launcher_path=$launcher_dir/$launcher_target ;;
+  esac
+done
+launcher_dir=$(CDPATH= cd -- "$(dirname -- "$launcher_path")" && pwd)
+
+for cli_path in "$launcher_dir/../bridge/cli.py" "$launcher_dir/bridge/cli.py" \
+                "$launcher_dir/../Resources/bridge/cli.py" "$launcher_dir/../lib/grok-space/bridge/cli.py"; do
+  if [ -f "$cli_path" ]; then
+    if [ -x /usr/bin/python3 ]; then
+      exec /usr/bin/python3 -E -s -B "$cli_path" "$@"
+    fi
+    printf '%s\n' '{"error":"Python 3 is unavailable","status":503,"code":"python_unavailable","recovery":[{"command":"Install Python 3.9 or later, then retry grok-space doctor"}]}' >&2
+    exit 2
+  fi
+done
+printf '%s\n' '{"error":"Local bridge files were not found beside this launcher","status":404,"code":"bridge_not_found","recovery":[{"command":"Use scripts/grok-space in a source checkout or rebuild the companion app"}]}' >&2
+exit 2

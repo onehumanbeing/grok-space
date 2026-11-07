@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{font:16px/1.55 -apple-system,BlinkMacSystemFont,sans-serif;color:#222;background:#fff}*{box-sizing:border-box}body{margin:0;padding:24px 20px}main{max-width:560px;margin:0 auto}h1{font-size:23px;line-height:1.3;font-weight:600;margin:0 0 10px}p{margin:0 0 24px;color:#666}label{display:block;font-size:14px;margin-bottom:7px}input,button{font:inherit;width:100%;min-height:44px;border:1px solid #ccc;border-radius:8px;padding:10px 12px}button{background:#222;color:white;border-color:#222;cursor:pointer;margin-top:24px}button:disabled{opacity:.5;cursor:default}input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid #666;outline-offset:3px}.eyebrow{font-size:13px;margin-bottom:12px;color:#888}.save-state{display:block;font-size:13px;min-height:22px;margin-top:6px;color:#777}.result{margin-top:25px;border-top:1px solid #eee;padding-top:20px}output{display:block;overflow-wrap:anywhere}details{margin-top:12px;font-size:13px;color:#777}summary{cursor:pointer;min-height:44px;display:flex;align-items:center}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.6 ui-monospace,monospace}#feedback{font-size:14px;margin-top:10px;color:#777}[hidden]{display:none!important}@media(min-width:768px){body{padding:48px 32px}}
+</style></head>
+<body><main><p class="eyebrow">Infrastructure starter · replace with your own app</p><h1>A small starting point</h1><p>One saved value and one action. The host handles storage and results; you decide what to build.</p>
+<label for="message">Saved message</label><input id="message" maxlength="200" autocomplete="off" disabled><span id="save-state" class="save-state" role="status">Loading…</span>
+<button id="run" disabled>Run example action</button><p id="feedback" role="status"></p>
+<section id="result-panel" class="result" hidden><output id="result"></output><details><summary>Response details</summary><pre id="result-json"></pre></details></section></main>
+<script>
+const el = id => document.getElementById(id);
+let current, pendingId, intent, busy = false;
+let saving = Promise.resolve(true);
+const events = new Map();
+function result(event) {
+  if (!event || !["completed", "failed"].includes(event.status)) return;
+  el("run").disabled = false;
+  el("run").textContent = "Run example action";
+  intent = null;
+  busy = false;
+  el("result-panel").hidden = false;
+  el("result").textContent = event.result?.mock ? "Mock response — no handler was executed." : event.result?.message || (event.status === "failed" ? "The action failed." : "Action completed.");
+  el("result-json").textContent = JSON.stringify(event.result, null, 2);
+  el("feedback").textContent = event.status === "completed" ? "Completed" : "Failed";
+}
+spaces.subscribe(snapshot => {
+  current = snapshot;
+  if (document.activeElement !== el("message")) el("message").value = snapshot.state.message || "";
+  el("message").disabled = false;
+  if (!busy) el("run").disabled = false;
+  el("save-state").textContent = "Saved";
+});
+spaces.subscribeEvents(event => { events.set(event.id, event); if (event.id === pendingId) result(event); });
+el("message").addEventListener("change", () => {
+  const base = current;
+  el("save-state").textContent = "Saving…";
+  const value = el("message").value;
+  saving = (async () => {
+    try { await spaces.patch({ message: value }, { expected_revision: base.revision, requestId: crypto.randomUUID() }); return true; }
+    catch (error) { el("save-state").textContent = error.status === 409 ? "Changed elsewhere. Review the latest value and try again." : error.message; current = await spaces.get(); return false; }
+  })();
+});
+el("run").addEventListener("click", async () => {
+  busy = true;
+  el("run").disabled = true;
+  el("feedback").textContent = "Running…";
+  try {
+    if (!await saving) { busy = false; el("run").disabled = false; el("feedback").textContent = "Review and save the edited message before running an action."; return; }
+    if (!intent) {
+      const snapshot = await spaces.get();
+      intent = { payload: { message: snapshot.state.message || "" }, options: { expected_revision: snapshot.revision, requestId: crypto.randomUUID() } };
+    }
+    const response = await spaces.action("example.run", intent.payload, intent.options);
+    pendingId = response.event.id;
+    result(events.get(pendingId) || response.event);
+    if (response.delivery === "manual" && response.event.status === "pending") el("feedback").textContent = "Request saved. Send the copied prompt in your existing Bot chat.";
+  } catch (error) {
+    busy = false; el("run").disabled = false;
+    if ([400, 409].includes(error.status)) { intent = null; el("feedback").textContent = "Review the latest saved value before trying again."; }
+    else { el("run").textContent = "Retry same request"; el("feedback").textContent = "Delivery was not confirmed. Retry preserves the original request ID."; }
+  }
+});
+spaces.get().then(snapshot => { current = snapshot; }).catch(error => { el("save-state").textContent = error.message; });
+</script></body></html>

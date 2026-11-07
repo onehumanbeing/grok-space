@@ -1,0 +1,9 @@
+{
+  "name": "grok-space-dev-checks",
+  "private": true,
+  "description": "Optional browser checks only; the application has no Node runtime dependency.",
+  "license": "MIT",
+  "scripts": { "test:ui": "node tests/ui_run.mjs" },
+  "devDependencies": { "playwright": "1.65.0" },
+  "engines": { "node": ">=20" }
+}

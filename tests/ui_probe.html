@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><style>body{margin:0;padding:24px;font:13px -apple-system,sans-serif;color:#333}h1{font-size:17px;font-weight:500;margin:0 0 12px}p{color:#999;font-size:11px}pre{font:11px ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#fafafa;border:1px solid #eee;border-radius:7px;padding:12px}button{font:12px -apple-system,sans-serif;padding:8px 11px;border:1px solid #ddd;border-radius:7px;background:white;color:#444}</style></head>
+<body><h1>SDK probe</h1><p>Isolated host verification fixture.</p><pre id="snapshot">Waiting for the host…</pre><button id="write">Write test value</button><p id="feedback"></p><script>
+window.probe = { instance: crypto.randomUUID(), snapshots: [], events: [] };
+spaces.subscribe(snapshot => { window.probe.snapshots.push(snapshot); document.querySelector('#snapshot').textContent = JSON.stringify(snapshot, null, 2); });
+spaces.subscribeEvents(event => window.probe.events.push(event));
+document.querySelector('#write').onclick = async () => {
+  try { const snapshot = await spaces.get(); await spaces.patch({ probe: 'saved' }, { expected_revision: snapshot.revision }); document.querySelector('#feedback').textContent = 'Saved through the SDK'; }
+  catch (error) { document.querySelector('#feedback').textContent = error.message; }
+};
+spaces.get().then(snapshot => { window.probe.initial = snapshot; });
+</script></body></html>

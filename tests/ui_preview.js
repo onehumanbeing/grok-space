@@ -1,0 +1,76 @@
+// Verify the disposable preview using the public Playwright library runner.
+async (page) => {
+  const { origin, root } = globalThis.UI_TEST;
+  const check = (value, message) => { if (!value) throw new Error(message); };
+  const health = await (await page.request.get(origin + "/health")).json();
+  check(health.app === "grok-space-preview" && health.mock && health.transient, "Preview is not explicitly disposable/mock.");
+  await page.waitForFunction(() => document.documentElement.dataset.previewReady === "true");
+  const frame = async () => {
+    const result = await (await page.locator("#preview-frame").elementHandle()).contentFrame();
+    await result.waitForFunction(() => window.spaces && !document.querySelector("#message").disabled);
+    return result;
+  };
+  let active = await frame();
+  check(await page.locator("header").textContent().then((text) => text.includes("Mock actions") && text.includes("no code")), "The mock boundary is not visible.");
+  const instance = await active.evaluate(() => { window.__previewInstance = crypto.randomUUID(); return window.__previewInstance; });
+  await active.locator("#message").fill("A saved preview value");
+  const saveResponse = page.waitForResponse((response) => response.request().method() === "PATCH" && response.url().endsWith("/state"));
+  await active.locator("#message").press("Tab");
+  check((await saveResponse).ok(), "Preview control save failed.");
+  await active.locator("#save-state").filter({ hasText: /^Saved$/ }).waitFor();
+  const saved = await active.evaluate(() => spaces.get());
+  await active.locator("#run").click();
+  await active.locator("#result").filter({ hasText: "Mock response" }).waitFor();
+  const original = await active.evaluate(() => spaces.events());
+  const action = original.events.find((event) => event.type === "example.run");
+  check(action?.status === "completed" && action.result.mock, "Mock action did not durably complete.");
+  check((await active.evaluate((id) => spaces.event(id), action.id)).result.mock === true, "event(id) did not return a mock result.");
+  check(await active.evaluate(() => window.__previewInstance) === instance, "State/action changed the iframe instance.");
+  const missing = await active.evaluate(async () => { try { await spaces.patch({ forbidden: true }); return 0; } catch (error) { return error.status; } });
+  check(missing === 400, "Missing expected_revision was silently filled.");
+  const external = await page.request.patch(origin + "/api/spaces/" + saved.space.id + "/state", { data: { patch: { external: "retained" }, expected_revision: saved.revision } });
+  check(external.ok(), "External preview edit failed: " + external.status() + " " + await external.text());
+  await active.locator("#message").fill("A conflicting draft");
+  await active.locator("#message").press("Tab");
+  await active.locator("#save-state").filter({ hasText: "Changed elsewhere" }).waitFor();
+  await active.locator("#run").click();
+  await active.locator("#feedback").filter({ hasText: "Review and save" }).waitFor();
+  check((await active.evaluate(() => spaces.events())).events.filter((event) => event.type === "example.run").length === 1, "A failed save dispatched an action.");
+  const stale = await active.evaluate(async (revision) => { try { await spaces.patch({ overwrite: true }, { expected_revision: revision }); return null; } catch (error) { return { status: error.status, current_revision: error.current_revision, expected_revision: error.expected_revision }; } }, saved.revision);
+  check(stale?.status === 409, "Stale preview edit was accepted.");
+  const fresh = await active.evaluate(() => spaces.get());
+  check(stale.current_revision === fresh.revision && stale.expected_revision === saved.revision, "Preview conflict error lost the current/expected revisions.");
+  check(fresh.state.external === "retained" && !fresh.state.overwrite && fresh.revision > saved.revision, "Conflict recovery lost the saved external edit.");
+  const requestId = "preview-idempotent-action";
+  const request = await active.evaluate(({ requestId, revision }) => spaces.action("example.echo", { value: 7 }, { expected_revision: revision, requestId }), { requestId, revision: fresh.revision });
+  await active.evaluate(async () => { const snapshot = await spaces.get(); await spaces.patch({ another: true }, { expected_revision: snapshot.revision }); });
+  const replay = await active.evaluate(({ requestId, revision }) => spaces.action("example.echo", { value: 7 }, { expected_revision: revision, requestId }), { requestId, revision: fresh.revision });
+  check(request.delivery === "mock" && replay.event.id === request.event.id, "Mock action replay duplicated the event.");
+  const events = await active.evaluate(() => spaces.events());
+  check(events.events.filter((event) => event.request_id === requestId).length === 1, "Mock replay duplicated the ledger row.");
+  const completion = await active.evaluate((after) => spaces.events({ after }), request.event.seq);
+  check(completion.events.some((event) => event.type === "action.completed"), "Creation cursor omitted completion audit.");
+  const refused = await page.request.post(origin + "/api/spaces/" + saved.space.id + "/worker", { data: {} });
+  check(refused.status() === 404, "Preview unexpectedly exposes worker registration/execution.");
+  const crossOrigin = await page.request.patch(origin + "/api/spaces/" + saved.space.id + "/state", { headers: { Origin: "https://invalid.example" }, data: { patch: {}, expected_revision: fresh.revision } });
+  check(crossOrigin.status() === 403, "Preview accepted cross-origin mutation.");
+  const networkDenied = await active.evaluate((origin) => fetch(origin + "/health").then(() => false, () => true), origin);
+  check(networkDenied, "Authored iframe can access the preview HTTP API directly.");
+  for (const width of [320, 360, 420, 768, 1280]) {
+    await page.locator("#width").selectOption(String(width));
+    check(await page.locator("#preview-frame").evaluate((frame) => frame.clientWidth) === width, "Canvas width differs from selected CSS viewport.");
+    check(await active.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Minimal starter overflows horizontally at " + width);
+    const type = await active.locator("body").evaluate((body) => Number.parseFloat(getComputedStyle(body).fontSize));
+    check(type >= 16, "Starter body text is too small.");
+    check(await active.locator("#run").evaluate((button) => button.getBoundingClientRect().height >= 44), "Starter hit area is too small.");
+    if (width === 420) await page.screenshot({ path: root + "/output/playwright/minimal-preview-420.png", scale: "css" });
+  }
+  await page.reload();
+  await page.waitForFunction(() => document.documentElement.dataset.previewReady === "true");
+  active = await frame();
+  check((await active.evaluate(() => spaces.get())).state.message === "A saved preview value", "Browser reload lost this run's temporary state.");
+  await page.locator("#reload").click();
+  active = await frame();
+  check((await active.evaluate(() => spaces.get())).state.external === "retained", "Reload HTML reset this run's state.");
+  return { passed: ["Real SDK get/patch/action/event/events and subscriptions", "Missing revision 400 and stale CAS 409 without overwrite", "Idempotent explicitly mocked actions; no worker endpoint", "Opaque iframe network denial and HTTP origin checks", "320/360/420/768/1280 readable single-column starter", "Browser and HTML reload retain only this preview process's state"], boundary: "Disposable mock preview, not a published Space or a real handler/device/Bot test." };
+}

@@ -1,0 +1,65 @@
+// Actual HTTP -> registered Python handler -> iframe subscription verification.
+// This is an internal fixture, not a real Grok-authored business application.
+async (page) => {
+  const origin = globalThis.UI_TEST.origin;
+  const root = globalThis.UI_TEST.root;
+  const check = (value, message) => { if (!value) throw new Error(message); };
+  const api = async (path) => {
+    const response = await page.request.get(origin + path);
+    check(response.ok(), path + " failed");
+    return response.json();
+  };
+  const health = await api("/health");
+  check(health.data_dir.startsWith(root + "/out/worker-ui-test"), "Refusing to use another store.");
+  const bot = (await api("/api/bots")).bots[0];
+  const space = (await api("/api/spaces")).spaces[0];
+  await page.goto(origin + "/?bot_id=" + bot.id + "&space_id=" + space.id);
+  await page.waitForFunction(() => document.documentElement.dataset.appReady === "true" && document.querySelector("#space-frame")?.srcdoc.length > 0);
+  await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text) => { window.__testCopied = text; window.__testCopyCount = (window.__testCopyCount || 0) + 1; } } }));
+  const active = await (await page.locator("#space-frame").elementHandle()).contentFrame();
+  await active.waitForFunction(() => window.workerProbe?.initial);
+  const instance = await active.evaluate(() => workerProbe.instance);
+  const initialRevision = (await active.evaluate(() => spaces.get())).revision;
+  const registration = await api("/api/spaces/" + space.id + "/worker");
+  check(registration.registered && registration.types.includes("compute_stats"), "Fixture handler is not registered.");
+  await active.locator("#filter").check();
+  await active.locator("#filter-status").filter({ hasText: "Saved filter" }).waitFor();
+  const filtered = await active.evaluate(() => spaces.get());
+  check(filtered.revision === initialRevision + 1 && filtered.state.online_only === true, "Filter was not durably saved.");
+  const beforeAction = Date.now();
+  const savedResponse = page.waitForResponse((response) => response.url().endsWith("/actions") && response.request().method() === "POST");
+  await active.locator("#compute").click();
+  const actionResponse = await (await savedResponse).json();
+  check(actionResponse.delivery === "local" && actionResponse.worker.accepted, "The registered action did not dispatch automatically.");
+  await active.waitForFunction(() => ["completed", "failed"].includes(document.querySelector("#status").textContent), undefined, { timeout: 20000 });
+  check(await active.locator("#status").textContent() === "completed", "The automatic worker returned a failed event.");
+  const visibleMs = Date.now() - beforeAction;
+  const result = JSON.parse(await active.locator("#result").textContent());
+  check(result.total === 10 && result.count === 3 && result.executions === 1 && result.online_only === true, "Handler result was not shown in the DOM.");
+  const eventId = actionResponse.event.id;
+  check(await active.evaluate((id) => workerProbe.events.some((event) => event.id === id && event.status === "completed"), eventId), "The event subscription did not deliver completion.");
+  const completed = (await api("/api/spaces/" + space.id + "/events/" + eventId)).event;
+  check(completed.status === "completed" && completed.result.total === 10, "Completion is not durable.");
+  const detail = await api("/api/spaces/" + space.id);
+  check(detail.state.online_only === true && detail.state.worker_stats.total === 10, "Worker patch lost the saved filter.");
+  check(detail.revision === filtered.revision + 1, "Worker patch did not commit exactly once.");
+  check(await active.evaluate(() => workerProbe.instance) === instance, "A state/result update rebuilt the iframe.");
+  check(await page.evaluate(() => !window.__testCopyCount), "An automatic local worker copied a manual prompt.");
+  await active.locator("#replay").click();
+  await active.waitForFunction(() => workerProbe.responses?.length === 2);
+  const replay = await active.evaluate(() => workerProbe.responses[1]);
+  check(replay.event.id === eventId && replay.worker.replayed === true, "Stable request replay did not return the original execution.");
+  const worker = await api("/api/spaces/" + space.id + "/worker");
+  check(worker.runs.length === 1 && worker.runs[0].status === "completed", "Replay created another execution claim.");
+  const events = (await api("/api/spaces/" + space.id + "/events")).events;
+  check(events.filter((event) => event.id === eventId).length === 1 && events.filter((event) => event.type === "action.completed" && event.payload.event_id === eventId).length === 1, "Replay duplicated event or completion.");
+  check((await api("/api/spaces/" + space.id)).revision === detail.revision, "Replay wrote state again.");
+  check(!(await page.locator("#notice-text").textContent()).includes("粘贴"), "Automatic execution displayed a manual-send notice.");
+  await page.reload();
+  await page.waitForFunction(() => document.documentElement.dataset.appReady === "true" && document.querySelector("#space-frame")?.srcdoc.length > 0);
+  const reopened = await (await page.locator("#space-frame").elementHandle()).contentFrame();
+  await reopened.waitForFunction(() => workerProbe?.initial);
+  const saved = await reopened.evaluate(() => spaces.get());
+  check(saved.state.online_only === true && saved.state.worker_stats.total === 10, "Reload lost saved filter or worker patch.");
+  return { passed: ["Real SDK button -> durable HTTP action -> automatic local Python worker", "Completion result delivered through SDK subscription into DOM", "Stable request replay creates no second run or state write", "Saved filter preserved; iframe instance unchanged", "No manual clipboard/paste flow for local delivery", "Reload retains filter and worker state"], visible_ms: visibleMs, event_id: eventId, revision: saved.revision, boundary: "Owned deterministic Python fixture + isolated Chromium. No live Grok business page, model invocation or user data." };
+}

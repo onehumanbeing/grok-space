@@ -1,0 +1,5 @@
+#!/bin/sh
+# Development-only browser preview; never selects an installed application store.
+set -eu
+preview_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+exec python3 -E -s -B "$preview_root/bridge/preview.py" "$@"

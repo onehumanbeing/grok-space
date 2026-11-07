@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><style>body{font:14px -apple-system,sans-serif;padding:20px}button{margin:15px 8px 15px 0}output{display:block;white-space:pre-wrap}</style></head>
+<body><h1>Internal local-worker probe</h1><p>Verification fixture only. Not a product page.</p>
+<label><input id="filter" type="checkbox"> Preserve this saved filter</label><span id="filter-status"></span>
+<div><button id="compute" disabled>Compute fixture stats</button><button id="replay" disabled>Replay same intent</button></div>
+<output id="status">Loading</output><output id="result"></output><output id="error"></output>
+<script>
+window.workerProbe = { instance: crypto.randomUUID(), events: [], copied: 0 };
+const el = id => document.getElementById(id);
+spaces.subscribe(snapshot => {
+  workerProbe.snapshot = snapshot;
+  el("filter").checked = snapshot.state.online_only === true;
+  el("filter-status").textContent = snapshot.state.online_only === true ? "Saved filter" : "";
+});
+spaces.subscribeEvents(event => {
+  workerProbe.events.push(event);
+  if (event.type !== "compute_stats") return;
+  workerProbe.event = event;
+  el("status").textContent = event.status;
+  if (event.status === "completed") el("result").textContent = JSON.stringify(event.result);
+});
+el("filter").onchange = async () => {
+  el("filter").disabled = true;
+  try { const snapshot = await spaces.get(); await spaces.patch({ online_only: el("filter").checked }, { expected_revision: snapshot.revision }); }
+  catch (error) { el("error").textContent = error.message; }
+  finally { el("filter").disabled = false; }
+};
+async function run(replay) {
+  try {
+    if (!replay) {
+      const snapshot = await spaces.get();
+      workerProbe.intent = { requestId: crypto.randomUUID(), expected_revision: snapshot.revision };
+    }
+    const result = await spaces.action("compute_stats", { values: [2, 3, 5] }, workerProbe.intent);
+    workerProbe.response = result;
+    workerProbe.responses = [...(workerProbe.responses || []), result];
+    el("replay").disabled = false;
+  } catch (error) { el("error").textContent = error.message; }
+}
+el("compute").onclick = () => run(false);
+el("replay").onclick = () => run(true);
+spaces.get().then(snapshot => { workerProbe.initial = snapshot; el("compute").disabled = false; el("status").textContent = "Ready"; });
+</script></body></html>

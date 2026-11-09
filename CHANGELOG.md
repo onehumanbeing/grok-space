@@ -13,6 +13,9 @@
 - Page switcher is now a full-height left drawer (also opens with an edge swipe).
   New pages can pick their Bot, and an existing page can be moved to another Bot
   (`open --rebind`, `PATCH /api/spaces/ID`); data, HTML and history are kept.
+- Delete a page from **… → 删除页面…** or `grok-space delete --space ID --confirm-title TITLE`
+  (`DELETE /api/spaces/ID`). Requires the exact title; refuses while a worker run is
+  active; the project folder is moved to the Trash.
 
 ## 0.1.1 — 2026-11-07
 

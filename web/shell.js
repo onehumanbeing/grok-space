@@ -164,6 +164,25 @@
     } catch (error) { el("rebind-error").textContent = error.message; el("rebind-error").hidden = false; }
   }
 
+  function openDelete() {
+    if (!current?.space) return;
+    el("delete-description").textContent = "「" + current.space.title + "」的页面、数据和操作记录会被永久删除，无法恢复。源码文件夹会移到废纸篓。";
+    el("delete-error").hidden = true;
+    show("delete-dialog");
+  }
+
+  async function submitDelete(event) {
+    event.preventDefault();
+    const space = current?.space;
+    if (!space) return;
+    try {
+      await api("/api/spaces/" + encodeURIComponent(space.id), { method: "DELETE", body: JSON.stringify({ title: space.title }) });
+      close("delete-dialog");
+      await chooseBot(space.bot_id);
+      notice("已删除「" + space.title + "」。");
+    } catch (error) { el("delete-error").textContent = error.message; el("delete-error").hidden = false; }
+  }
+
   async function revealSource() {
     el("actions-menu").open = false;
     if (!current?.space) return;
@@ -260,6 +279,7 @@
       el("pages-action").disabled = !model.space;
       el("advanced-action").disabled = !model.space;
       el("source-action").disabled = !model.space;
+      el("delete-action").disabled = !model.space;
       el("window-toggle").hidden = !window.webkit?.messageHandlers?.spacesNative;
       if (model.pendingCount && !model.pending && !model.loading) el("save-status").textContent = "等待 AI";
       if (el("library-dialog").open) renderLibrary();
@@ -272,6 +292,8 @@
   el("library-toggle").addEventListener("click", openLibrary);
   el("rebind-form").addEventListener("submit", submitRebind);
   el("source-action").addEventListener("click", revealSource);
+  el("delete-action").addEventListener("click", openDelete);
+  el("delete-form").addEventListener("submit", submitDelete);
   el("library-search").addEventListener("input", renderLibrary);
   el("library-create").addEventListener("click", () => create(current?.bot ? "space" : "bot"));
   el("add-bot-action").addEventListener("click", () => close("library-dialog"), { capture: true });

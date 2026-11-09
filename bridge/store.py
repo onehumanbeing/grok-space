@@ -6,6 +6,7 @@ import base64
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -242,6 +243,33 @@ class Store:
                 db.execute("UPDATE spaces SET bot_id=?, updated_at=? WHERE id=?", (bot_id, timestamp(), space_id))
                 self._insert_event(db, space_id, "space.rebound", {"from_bot_id": row["bot_id"], "bot_id": bot_id}, actor)
             return self._space(self._required(db, "spaces", space_id))
+
+    def delete_space(self, space_id, confirm_title, trash_dir=None):
+        """Permanently remove a Space after an exact-title confirmation.
+
+        The authored project folder is moved to the Trash, not unlinked.
+        """
+        with self.connect(write=True) as db:
+            row = self._required(db, "spaces", space_id)
+            if confirm_title != row["title"]:
+                raise SpaceError("Confirm deletion with the exact Space title.", 409, code="delete_confirmation_mismatch")
+            tables = {name for (name,) in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "local_worker_runs" in tables:
+                if db.execute("SELECT 1 FROM local_worker_runs WHERE space_id=? AND status IN ('queued','running')", (space_id,)).fetchone():
+                    raise SpaceError("A local worker run is still active for this Space. Retry after it finishes.", 409, code="worker_active")
+                db.execute("DELETE FROM local_worker_runs WHERE space_id=?", (space_id,))
+            if "local_workers" in tables:
+                db.execute("DELETE FROM local_workers WHERE space_id=?", (space_id,))
+            db.execute("DELETE FROM events WHERE space_id=?", (space_id,))
+            db.execute("DELETE FROM spaces WHERE id=?", (space_id,))
+            folder = self.data_dir / "projects" / space_id
+            moved = None
+            if folder.is_dir() and not folder.is_symlink():
+                trash = Path(trash_dir) if trash_dir else Path.home() / ".Trash"
+                trash.mkdir(parents=True, exist_ok=True)
+                moved = trash / "Grok Space {} {}".format(row["title"].replace("/", "-")[:60], timestamp().replace(":", "-"))
+                folder.rename(moved) if folder.stat().st_dev == trash.stat().st_dev else shutil.move(str(folder), str(moved))
+        return {"deleted": True, "space_id": space_id, "title": row["title"], "project_moved_to": str(moved) if moved else None}
 
     def resolve_space(self, bot_id, title):
         """Resolve/create an exact title atomically; never guess among duplicates."""

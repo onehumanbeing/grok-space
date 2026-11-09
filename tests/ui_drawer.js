@@ -48,5 +48,13 @@ async (page) => {
   await page.waitForFunction(() => document.querySelector("#library-dialog").open);
   await page.keyboard.press("Escape");
   passed.push("Edge swipe opens the drawer");
+
+  await page.locator("#actions-menu summary").click();
+  await page.locator("#delete-action").click();
+  await page.locator("#delete-form .dialog-submit").click();
+  await page.waitForFunction(() => !document.querySelector("#delete-dialog").open);
+  check(!(await api("/api/spaces")).spaces.some((space) => space.id === created.id), "Delete did not remove the Space.");
+  await page.waitForFunction(() => document.querySelector("#current-space-name").textContent !== "抽屉测试页面");
+  passed.push("Delete removes the current Space after confirmation");
   return { passed };
 }

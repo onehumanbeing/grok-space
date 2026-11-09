@@ -187,6 +187,9 @@ def parser():
 
     # Only the five families above are advertised. Old successful response
     # shapes remain unchanged for existing integrations.
+    remove = commands.add_parser("delete", description="Permanently delete a Space; its project folder goes to the Trash")
+    add_space(remove)
+    remove.add_argument("--confirm-title", required=True, help="Exact Space title, as a deliberate confirmation")
     contract = commands.add_parser("contract")
     contract.add_argument("--space")
     commands.add_parser("bots")
@@ -454,6 +457,8 @@ def run(args):
                 return local_worker.status(store, args.space, args.event, include_output=args.output)
             return local_worker.dispatch(store, args.space, args.event)
         return event_result(store, args, args.action_command)
+    if operation == "delete":
+        return store.delete_space(args.space, args.confirm_title)
     if operation == "contract":
         return describe(store, args.space)
     if operation == "bots":

@@ -107,6 +107,21 @@ class InitLocalSourceTests(unittest.TestCase):
         self.cli("open", "--bot", "First", "--space", space["id"], status=2)
         self.assertEqual(self.cli("open", "--bot", "First", "--space", space["id"], "--rebind")["space"]["bot_id"], first["id"])
 
+    def test_delete_space_requires_exact_title_and_trashes_project(self):
+        result = self.init("--type", "refresh")
+        space, project = result["space"]["id"], Path(result["project_dir"])
+        store = Store(self.data)
+        store.action(space, "manual", {}, "r1", expected_revision=1)
+        trash = Path(self.temp.name) / "Trash"
+        with self.assertRaises(SpaceError):
+            store.delete_space(space, "Wrong", trash_dir=trash)
+        removed = store.delete_space(space, "Mi Home", trash_dir=trash)
+        self.assertFalse(project.exists())
+        self.assertTrue((Path(removed["project_moved_to"]) / "handler.py").is_file())
+        with self.assertRaises(SpaceError):
+            store.detail(space)
+        self.cli("delete", "--space", space, "--confirm-title", "Mi Home", status=2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -121,6 +121,9 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as exc:
                     raise SpaceError("after must be an integer") from exc
                 return self._send(200, {"events": store.events(space_id, after, query.get("status", [None])[0])})
+            if self.command == "DELETE" and endpoint is None:
+                data = self._json_body()
+                return self._send(200, store.delete_space(space_id, data.get("title")))
             if self.command == "PATCH" and endpoint is None:
                 data = self._json_body()
                 return self._send(200, {"space": store.rebind_space(space_id, data.get("bot_id"))})
@@ -176,6 +179,7 @@ class Handler(BaseHTTPRequestHandler):
     do_GET = _handle
     do_POST = _handle
     do_PATCH = _handle
+    do_DELETE = _handle
     do_PUT = _handle
 
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0 — 2026-11-09
+
+- `init`: one command sets up a Space for a Bot — starter `index.html` and
+  `handler.py` in `project_dir` (never overwritten), first publish, and local
+  worker registration for the given action types. The default copied setup
+  prompt is now this short plumbing-only version; the full authoring prompt
+  remains available through the API (`mode: "full"`).
+- Local source editing: `open` exports the saved page to `project_dir/index.html`
+  when absent, and `publish --from-project` publishes that file. Bot and local
+  edits share one source file. **… → Open source folder** reveals it in Finder.
+- Page switcher is now a full-height left drawer (also opens with an edge swipe).
+  New pages can pick their Bot, and an existing page can be moved to another Bot
+  (`open --rebind`, `PATCH /api/spaces/ID`); data, HTML and history are kept.
+- Delete a page from **… → 删除页面…** or `grok-space delete --space ID --confirm-title TITLE`
+  (`DELETE /api/spaces/ID`). Requires the exact title; refuses while a worker run is
+  active; the project folder is moved to the Trash.
+
 ## 0.1.1 — 2026-11-07
 
 - Rename the project and canonical repository to **Grok Spaces** /

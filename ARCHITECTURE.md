@@ -28,7 +28,8 @@ flowchart LR
   Grok-authored, CLI-registered project-local Python handlers.
 - `bridge/preview.py`: disposable browser preview using the real SDK and mocked
   actions. It neither imports nor executes the local worker runtime.
-- `bridge/cli.py`, `contract.py`, `prompts.py`: five public command families
+- `bridge/cli.py`, `contract.py`, `prompts.py`: six public command families (`init` scaffolds
+  `scaffold.py` starter source and registers the worker)
   and concrete instructions scoped to one installation/Bot/Space.
 - `bridge/mcp_probe.py`: isolated research fixture, not the product connection.
 

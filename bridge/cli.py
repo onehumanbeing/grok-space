@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Five local command families for the existing Grok Bot; no account access."""
+"""Six local command families for the existing Grok Bot; no account access."""
 import argparse
 import json
 import os
@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 from urllib.request import build_opener, HTTPRedirectHandler, ProxyHandler
 
 from store import SpaceError, Store
+import scaffold
 from contract import capabilities, describe
 from version import VERSION, BUILD_NUMBER
 
@@ -22,6 +23,7 @@ PUBLIC_COMMANDS = {
     "read": "Read Spaces, state, authored source location or events",
     "publish": "Save HTML and/or state with an explicit revision",
     "action": "Create, inspect or finish a durable action",
+    "init": "Set up a Space in one step: starter source, page and local worker",
 }
 
 
@@ -121,7 +123,7 @@ def add_event_operations(subparsers, include_status=False):
 def parser():
     root = JsonParser(prog="grok-space", description="Local HTML/state foundation for existing Grok Bots")
     root.set_defaults(data_dir=Path(os.environ.get("GROK_SPACES_DATA_DIR", DEFAULT_DATA)))
-    commands = root.add_subparsers(dest="command", required=True, metavar="{doctor,open,read,publish,action}")
+    commands = root.add_subparsers(dest="command", required=True, metavar="{doctor,open,read,publish,action,init}")
     public = {name: commands.add_parser(name, help=description, description=description)
               for name, description in PUBLIC_COMMANDS.items()}
     public["doctor"].add_argument("--space", help="Include this Space's scoped authoring interface")
@@ -131,6 +133,7 @@ def parser():
     opened.add_argument("--bot", required=True, help="Exact local Bot name or ID; never guessed")
     opened.add_argument("--create-bot", action="store_true", help="Explicitly register a missing local Bot label")
     opened.add_argument("--show", action="store_true", help="Ask macOS to show this Space in the companion app")
+    opened.add_argument("--rebind", action="store_true", help="Move --space to --bot instead of refusing a different Bot")
     opened.add_argument("--icon-file", type=Path, help="Use this local PNG/JPEG/GIF/WebP image for the Bot avatar (128 KiB max)")
     target = opened.add_mutually_exclusive_group(required=True)
     target.add_argument("--space", help="Reopen a stable Space ID belonging to this Bot")
@@ -146,9 +149,20 @@ def parser():
     read.add_argument("--status", choices=("pending", "completed", "failed"))
     publish = public["publish"]
     add_space(publish)
-    publish.add_argument("--html-file", type=Path, help="Self-contained UTF-8 HTML file")
+    html = publish.add_mutually_exclusive_group()
+    html.add_argument("--html-file", type=Path, help="Self-contained UTF-8 HTML file")
+    html.add_argument("--from-project", action="store_true", help="Publish project_dir/index.html, the locally editable source")
     publish.add_argument("--patch-file", type=Path, help="JSON Merge Patch object; may be used without HTML")
     add_revision(publish)
+    initial = public["init"]
+    initial.add_argument("--bot", required=True, help="Exact local Bot name or ID; never guessed")
+    initial.add_argument("--create-bot", action="store_true", help="Explicitly register a missing local Bot label")
+    initial.add_argument("--expect-installation", required=True, help="Fail if this is a different local installation")
+    initial.add_argument("--type", action="append", default=[], dest="types", help="Action type for the local worker; repeatable")
+    initial.add_argument("--show", action="store_true", help="Ask macOS to show this Space in the companion app")
+    target = initial.add_mutually_exclusive_group(required=True)
+    target.add_argument("--space", help="Stable Space ID belonging to this Bot")
+    target.add_argument("--title", help="Resolve or create an exact Space title for this Bot")
     action = public["action"].add_subparsers(dest="action_command", required=True)
     create = action.add_parser("create", description="Record an idempotent pending action; does not wake a Bot")
     add_space(create)
@@ -173,6 +187,9 @@ def parser():
 
     # Only the five families above are advertised. Old successful response
     # shapes remain unchanged for existing integrations.
+    remove = commands.add_parser("delete", description="Permanently delete a Space; its project folder goes to the Trash")
+    add_space(remove)
+    remove.add_argument("--confirm-title", required=True, help="Exact Space title, as a deliberate confirmation")
     contract = commands.add_parser("contract")
     contract.add_argument("--space")
     commands.add_parser("bots")
@@ -346,14 +363,37 @@ def run(args):
         if args.icon_file:
             store.set_bot_icon(bot["id"], args.icon_file)
         if args.space:
+            if args.rebind:
+                store.rebind_space(args.space, bot["id"], "bot")
             detail = scoped_detail(store, args.space, bot)
             created = False
         else:
             space, created = store.resolve_space(bot["id"], args.title)
             detail = store.detail(space["id"])
         window = show_space(store, bot, detail["space"]) if args.show else {"window_opened": False, "window_status": "not_requested"}
+        source, _ = scaffold.export_source(store, detail["space"]["id"])
         return dict(space=detail["space"], refs=refs(store, detail["space"]), created=created,
-                    bot_created=bot_created, project_dir=str(store.project_directory(detail["space"]["id"], create=True)), **window)
+                    bot_created=bot_created, project_dir=str(source.parent),
+                    source_file=str(source) if source.is_file() else None, **window)
+    if operation == "init":
+        installation = store.info()["installation_id"]
+        if args.expect_installation != installation:
+            raise SpaceError("This is a different local Space installation. Use the intended data directory.", 409,
+                             code="installation_mismatch", installation_id=installation)
+        if args.show and store.data_dir != DEFAULT_DATA.expanduser().resolve():
+            raise SpaceError("--show requires the default data directory; omit --show for isolated local data.",
+                             code="custom_data_dir_show_unsupported")
+        bot, bot_created = resolve_bot(store, args.bot, create=args.create_bot)
+        if args.space:
+            space, created = scoped_detail(store, args.space, bot)["space"], False
+        else:
+            space, created = store.resolve_space(bot["id"], args.title)
+        setup = scaffold.init(store, space["id"], args.types)
+        window = show_space(store, bot, space) if args.show else {"window_opened": False, "window_status": "not_requested"}
+        detail = store.detail(space["id"])
+        return dict(space=detail["space"], revision=detail["revision"], refs=refs(store, detail["space"]),
+                    created=created, bot_created=bot_created, **setup, **window,
+                    next="Business logic is edited locally in project_dir; publish with: publish --space {} --expected-revision N --from-project".format(space["id"]))
     if operation == "read":
         if (args.summary or args.field) and (not args.space or args.events or args.html):
             raise SpaceError("--summary/--field require --space and cannot be combined with --events or --html")
@@ -391,8 +431,10 @@ def run(args):
             result["view_html"] = detail["view_html"]
         return dict(result, refs=refs(store, detail["space"]), project_dir=str(store.project_directory(args.space)))
     if operation == "publish":
+        if args.from_project:
+            args.html_file = scaffold.source_file(store, args.space)
         if args.html_file is None and args.patch_file is None:
-            raise SpaceError("Publish requires --html-file and/or --patch-file")
+            raise SpaceError("Publish requires --html-file, --from-project and/or --patch-file")
         patch = None
         if args.patch_file:
             args.file, args.json = args.patch_file, None
@@ -415,6 +457,8 @@ def run(args):
                 return local_worker.status(store, args.space, args.event, include_output=args.output)
             return local_worker.dispatch(store, args.space, args.event)
         return event_result(store, args, args.action_command)
+    if operation == "delete":
+        return store.delete_space(args.space, args.confirm_title)
     if operation == "contract":
         return describe(store, args.space)
     if operation == "bots":

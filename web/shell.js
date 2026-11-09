@@ -6,6 +6,7 @@
   let allBots = [];
   let windowState = window.__GROK_SPACES_WINDOW__ || null;
   let noticeTimer = null;
+  let rebindTarget = null;
   let avatarKey = "";
   let avatarGeneration = 0;
   let avatarController = null;
@@ -86,7 +87,7 @@
       group.className = "library-group";
       const heading = document.createElement("p");
       heading.className = "library-bot";
-      heading.textContent = bot.name;
+      heading.textContent = bot.name + " · " + spaces.length;
       group.append(heading);
       spaces.forEach((space) => {
         count += 1;
@@ -115,7 +116,18 @@
             else await chooseBot(bot.id, space.id);
           } catch (error) { notice(error.message, { error: true }); }
         });
-        group.append(button);
+        const row = document.createElement("div");
+        row.className = "library-row";
+        const rebind = document.createElement("button");
+        rebind.type = "button";
+        rebind.className = "rebind-button";
+        rebind.title = "更换 Bot";
+        rebind.setAttribute("aria-label", "更换「" + space.title + "」的 Bot");
+        rebind.textContent = "⇄";
+        rebind.hidden = allBots.length < 2;
+        rebind.addEventListener("click", () => openRebind(space));
+        row.append(button, rebind);
+        group.append(row);
       });
       list.append(group);
     });
@@ -127,6 +139,68 @@
     }
     el("library-create").textContent = current?.bot ? "＋ 新建页面" : "＋ 关联 Bot";
   }
+
+  function openRebind(space) {
+    rebindTarget = space;
+    const select = el("rebind-bot");
+    select.replaceChildren(...allBots.map((bot) => new Option(bot.name, bot.id, false, bot.id === space.bot_id)));
+    el("rebind-description").textContent = "「" + space.title + "」的内容、数据和记录都会保留，只是交给另一个 Bot。";
+    el("rebind-error").hidden = true;
+    close("library-dialog");
+    show("rebind-dialog");
+  }
+
+  async function submitRebind(event) {
+    event.preventDefault();
+    const space = rebindTarget;
+    const botId = el("rebind-bot").value;
+    if (!space || botId === space.bot_id) { close("rebind-dialog"); return; }
+    try {
+      await api("/api/spaces/" + encodeURIComponent(space.id), { method: "PATCH", body: JSON.stringify({ bot_id: botId }) });
+      close("rebind-dialog");
+      model.bots = allBots;
+      if (current?.space?.id === space.id || current?.bot?.id === space.bot_id) await chooseBot(botId, space.id);
+      notice("已更换 Bot。");
+    } catch (error) { el("rebind-error").textContent = error.message; el("rebind-error").hidden = false; }
+  }
+
+  function openDelete() {
+    if (!current?.space) return;
+    el("delete-description").textContent = "「" + current.space.title + "」的页面、数据和操作记录会被永久删除，无法恢复。源码文件夹会移到废纸篓。";
+    el("delete-error").hidden = true;
+    show("delete-dialog");
+  }
+
+  async function submitDelete(event) {
+    event.preventDefault();
+    const space = current?.space;
+    if (!space) return;
+    try {
+      await api("/api/spaces/" + encodeURIComponent(space.id), { method: "DELETE", body: JSON.stringify({ title: space.title }) });
+      close("delete-dialog");
+      await chooseBot(space.bot_id);
+      notice("已删除「" + space.title + "」。");
+    } catch (error) { el("delete-error").textContent = error.message; el("delete-error").hidden = false; }
+  }
+
+  async function revealSource() {
+    el("actions-menu").open = false;
+    if (!current?.space) return;
+    const request = nativeRequest("reveal", { space_id: current.space.id });
+    if (!request) { notice("源码在数据目录的 projects/" + current.space.id + "，可用 grok-space open 查看路径。"); return; }
+    try {
+      const result = await request;
+      if (!result.ok) throw new Error(result.error || "没能打开源码文件夹。");
+    } catch (error) { notice(error.message, { error: true }); }
+  }
+
+  // Swipe right from the left edge (touch or trackpad drag) to open the page drawer.
+  let swipeStart = null;
+  window.addEventListener("pointerdown", (event) => { swipeStart = event.clientX <= 18 ? { x: event.clientX, y: event.clientY } : null; });
+  window.addEventListener("pointerup", (event) => {
+    if (swipeStart && event.clientX - swipeStart.x > 60 && Math.abs(event.clientY - swipeStart.y) < 60 && !el("library-dialog").open) openLibrary();
+    swipeStart = null;
+  });
 
   async function openLibrary() {
     show("library-dialog");
@@ -204,6 +278,8 @@
       el("current-space-name").textContent = model.space?.title || "我的空间";
       el("pages-action").disabled = !model.space;
       el("advanced-action").disabled = !model.space;
+      el("source-action").disabled = !model.space;
+      el("delete-action").disabled = !model.space;
       el("window-toggle").hidden = !window.webkit?.messageHandlers?.spacesNative;
       if (model.pendingCount && !model.pending && !model.loading) el("save-status").textContent = "等待 AI";
       if (el("library-dialog").open) renderLibrary();
@@ -214,6 +290,10 @@
     },
   };
   el("library-toggle").addEventListener("click", openLibrary);
+  el("rebind-form").addEventListener("submit", submitRebind);
+  el("source-action").addEventListener("click", revealSource);
+  el("delete-action").addEventListener("click", openDelete);
+  el("delete-form").addEventListener("submit", submitDelete);
   el("library-search").addEventListener("input", renderLibrary);
   el("library-create").addEventListener("click", () => create(current?.bot ? "space" : "bot"));
   el("add-bot-action").addEventListener("click", () => close("library-dialog"), { capture: true });

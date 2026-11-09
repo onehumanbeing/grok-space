@@ -79,6 +79,7 @@ try {
   if (["all", "shell"].includes(selected)) await withHost("redesign-test-", null, async (page) => {
     await run("ui_redesign.js", page);
     await run("ui_avatar.js", page);
+    await run("ui_drawer.js", page);
   });
   if (["all", "worker"].includes(selected)) await withHost("worker-ui-test-", (dataDir) => command(["tests/ui_worker_bootstrap.py", path.basename(dataDir)]), async (page) => {
     const result = await run("ui_worker.js", page);

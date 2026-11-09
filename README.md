@@ -70,8 +70,8 @@ not an authenticated Grok identity or automatic detection of the current chat.
 
 Use the returned `refs.space_id` in subsequent calls. In the window, use
 **… → 安装与连接… → 复制当前页面的连接指令** and send it in the matching Bot conversation.
-The Bot must confirm this Mac's installation ID, read the [SDK](web/README.md),
-author its HTML in the returned `project_dir`, and publish through the same CLI.
+The Bot confirms this Mac's installation ID and runs one `init` (see below);
+page and handler code are then edited locally in the returned `project_dir`.
 
 ```bash
 ./scripts/grok-space read --space SPACE_ID --summary
@@ -83,12 +83,37 @@ author its HTML in the returned `project_dir`, and publish through the same CLI.
   --expected-revision 1 --file /absolute/path/result.json
 ```
 
-The five public families are `doctor / open / read / publish / action`. They
+The six public families are `doctor / open / read / publish / action / init`. They
 return JSON, including factual errors and recovery guidance. Use files for long
 or untrusted data rather than shell interpolation. Publish can update HTML,
 state, or both atomically; stale revisions are rejected. Default reads return
 saved data; request HTML explicitly with `read --space SPACE_ID --html`, or
 history with `read --space SPACE_ID --events`.
+
+## Edit locally, connect cheaply
+
+The Bot only needs to lay the plumbing. One command creates the starter page,
+a handler with one stub per action type, publishes it and registers the worker:
+
+```bash
+./scripts/grok-space init --bot "My Bot" --space SPACE_ID \
+  --expect-installation INSTALLATION_ID --type refresh --type toggle
+```
+
+**… → 安装与连接… → 复制当前页面的连接指令** copies exactly this request for the Bot.
+After that, anyone on this Mac (you, or a local coding agent) edits
+`project_dir/index.html` and `handler.py` directly. Existing files are never
+overwritten; `open` exports a saved page into `index.html` if it is missing.
+
+```bash
+./scripts/grok-space read --space SPACE_ID --summary        # current revision
+./scripts/grok-space publish --space SPACE_ID --expected-revision N --from-project
+```
+
+`handler.py` is reread on every run, so handler edits apply immediately.
+Use the left drawer (avatar, or swipe from the left edge) to switch pages.
+Each page belongs to one Bot; pick it when creating, or use ⇄ to move a page to
+another Bot (`open --bot OTHER --space SPACE_ID --rebind`).
 
 ## What a page can do
 

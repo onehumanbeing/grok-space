@@ -563,6 +563,8 @@ function openCreate(mode) {
   $("create-name").value = "";
   $("external-id").value = "";
   $("external-id-field").hidden = !bot;
+  $("create-bot-field").hidden = bot || model.bots.length < 2;
+  $("create-bot").replaceChildren(...model.bots.map((entry) => new Option(entry.name, entry.id, false, entry.id === model.bot?.id)));
   $("create-submit").textContent = bot ? "继续" : "创建页面";
   $("create-error").hidden = true;
   $("actions-menu").open = false;
@@ -617,11 +619,12 @@ $("create-form").addEventListener("submit", async (event) => {
       model.bots.push(result.bot);
       await chooseBot(result.bot.id);
     } else {
-      const botId = model.bot.id;
+      const currentBotId = model.bot.id;
+      const botId = $("create-bot").value || currentBotId;
       const result = await api("/api/spaces", { method: "POST", body: JSON.stringify({ bot_id: botId, title: name }) });
-      if (model.bot?.id !== botId) return;
-      model.spaces.push(result.space);
-      await chooseSpace(result.space.id);
+      if (model.bot?.id !== currentBotId) return;
+      if (botId !== currentBotId) await chooseBot(botId, result.space.id);
+      else { model.spaces.push(result.space); await chooseSpace(result.space.id); }
     }
     $("create-dialog").close();
   } catch (error) { $("create-error").textContent = error.message; $("create-error").hidden = false; }

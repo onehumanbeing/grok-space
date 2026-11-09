@@ -48,13 +48,34 @@ open "out/Grok Spaces.app"
 ./scripts/grok-space open --bot "我的 Bot" --create-bot --title "我的 Space" --show
 ```
 
-在窗口 **… → 安装与连接… → 复制当前页面的连接指令**，发给对应 Bot。Bot 核对设备和
-installation ID 后，在返回的 `project_dir` 写自包含 HTML，通过 CLI 发布。
-入口只有 `doctor / open / read / publish / action` 五组，均返回 JSON。
+在窗口 **… → 安装与连接… → 复制当前页面的连接指令**，发给对应 Bot。Bot 只需在本机跑一条
+`init`，业务代码之后在 `project_dir` 本地改。入口为 `doctor / open / read / publish / action / init`
+六组，均返回 JSON。
 
 窗口采用 Grok 相近的系统字体、白灰配色和紧凑布局，可跟随 Grok，也可在 **Space →
 Standalone** 独立摆放。Space 保存 HTML、筛选、数据和动作结果，退出后仍保留。
 数据目录为 `~/Library/Application Support/Grok Spaces/`，更新时请保留。
+
+**本地改代码，Bot 只做接线**
+
+Bot 只需要跑一条命令：生成起手页面、每个 action 一个桩函数的 handler，完成首次发布并注册 worker：
+
+```bash
+./scripts/grok-space init --bot "我的 Bot" --space SPACE_ID \
+  --expect-installation INSTALLATION_ID --type refresh --type toggle
+```
+
+之后本机的人或本地编程 Agent 直接改 `project_dir/index.html` 和 `handler.py`。已有文件不会被覆盖；
+`open` 会在 `index.html` 缺失时导出已保存的页面。
+
+```bash
+./scripts/grok-space read --space SPACE_ID --summary        # 当前版本号
+./scripts/grok-space publish --space SPACE_ID --expected-revision N --from-project
+```
+
+`handler.py` 每次运行都会重新读取，改完立即生效。点头像或从左边缘右滑打开侧边抽屉切换页面。
+每个页面属于一个 Bot：新建时可选，已有页面可用 ⇄ 换到另一个 Bot
+（`open --bot OTHER --space SPACE_ID --rebind`）。
 
 页面通过注入的 `window.spaces` 读写状态、记录动作并接收结果。HTML 不直接联网、不访问
 文件或执行命令。每次写入带读取时的版本，过期写入会拒绝，避免覆盖新数据。

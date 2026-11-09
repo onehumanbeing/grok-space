@@ -247,7 +247,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
               origin.protocol == "http", origin.host == "127.0.0.1", origin.port == server.port,
               message.webView === webView,
               let body = message.body as? [String: Any],
-              let type = body["type"] as? String, ["copy", "export", "window"].contains(type)
+              let type = body["type"] as? String, ["copy", "export", "window", "reveal"].contains(type)
         else { return }
         let id = (body["id"] as? String).map { String($0.prefix(200)) } ?? ""
         if type == "window" {
@@ -259,6 +259,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNa
                 guard let self else { return }
                 self.publishWindowState()
                 self.nativeResponse(type: type, id: id, ok: ok, error: error, windowState: self.ownWindow.state)
+            }
+            return
+        }
+        if type == "reveal" {
+            // Only a well-formed Space ID under the owned data folder; never a page-supplied path.
+            guard let spaceID = body["space_id"] as? String,
+                  spaceID.range(of: "^space_[a-f0-9]{32}$", options: .regularExpression) != nil else {
+                nativeResponse(type: type, id: id, ok: false, error: "页面引用无效。")
+                return
+            }
+            let folder = server.dataDirectory.appendingPathComponent("projects", isDirectory: true)
+                .appendingPathComponent(spaceID, isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true,
+                                                        attributes: [.posixPermissions: 0o700])
+                NSWorkspace.shared.open(folder)
+                nativeResponse(type: type, id: id, ok: true, error: nil)
+            } catch {
+                nativeResponse(type: type, id: id, ok: false, error: "没能打开源码文件夹。")
             }
             return
         }

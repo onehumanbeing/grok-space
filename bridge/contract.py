@@ -24,15 +24,16 @@ def capabilities():
 
 def describe(store, space_id=None):
     result = {
-        "app": "grok-spaces", "contract_version": "1.4",
+        "app": "grok-spaces", "contract_version": "1.5",
         "installation": store.info(), "data_dir": str(store.data_dir),
         "cli_path": str(Path(__file__).resolve().with_name("cli.py")),
         "purpose": "Host and persist HTML applications authored by the existing Grok Bot. No business application is built into the host.",
         "commands": {
             "doctor": "doctor [--space SPACE_ID] [--expect-installation INSTALLATION_ID] [--summary]: verify identity and interface; --summary returns compact version/Space/Bot counts and checks the matching loopback service without starting it",
-            "open": "open --bot EXACT_NAME_OR_LOCAL_ID (--space SPACE_ID | --title TITLE) [--create-bot] [--show]: return stable Space metadata, refs and project_dir; --create-bot explicitly registers a local label; no state, HTML or history is returned",
+            "open": "open --bot EXACT_NAME_OR_LOCAL_ID (--space SPACE_ID [--rebind] | --title TITLE) [--create-bot] [--show]: return stable Space metadata, refs, project_dir and source_file (saved HTML is exported to project_dir/index.html when absent); --rebind moves the Space to this Bot; --create-bot explicitly registers a local label; no state, HTML or history is returned",
             "read": "read [--bot EXACT_NAME_OR_LOCAL_ID] [--space SPACE_ID [--summary | --field KEY (repeatable) | --html | --events [--after SEQ] [--status pending|completed|failed]]]: prefer summary or selected fields for model efficiency; HTML/history are explicit",
-            "publish": "publish --space SPACE_ID --expected-revision N [--html-file HTML] [--patch-file PATCH_JSON]: at least one file; HTML and state commit atomically when supplied together; returns space/revision/refs/pending_count only",
+            "publish": "publish --space SPACE_ID --expected-revision N [--html-file HTML | --from-project] [--patch-file PATCH_JSON]: at least one source; --from-project publishes project_dir/index.html, the locally editable source; HTML and state commit atomically when supplied together; returns space/revision/refs/pending_count only",
+            "init": "init --bot EXACT_NAME_OR_LOCAL_ID (--space SPACE_ID | --title TITLE) --expect-installation ID [--type NAME (repeatable)] [--create-bot] [--show]: one-step setup; writes starter index.html (or exports the saved page) and handler.py into project_dir without overwriting, publishes the starter if the Space has no page, and registers the handler for the given types",
             "action": "action create --space SPACE_ID --type NAME --request-id ID --expected-revision N --file PAYLOAD_JSON; action get|status --space SPACE_ID [--event EVENT_ID]; action complete|fail --space SPACE_ID --event EVENT_ID --expected-revision N --file RESULT_JSON; action worker register --space SPACE_ID --file PROJECT_HANDLER_PY --type NAME (repeatable); action worker status|run --space SPACE_ID [--event EVENT_ID]",
         },
         "capabilities": capabilities(),

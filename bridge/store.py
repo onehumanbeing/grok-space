@@ -231,6 +231,18 @@ class Store:
             ))
         return self.detail(key)["space"]
 
+    def rebind_space(self, space_id, bot_id, actor="user"):
+        """Move a Space to another local Bot label; state, HTML and history stay."""
+        if not isinstance(bot_id, str):
+            raise SpaceError("bot_id must be a local Bot ID")
+        with self.connect(write=True) as db:
+            row = self._required(db, "spaces", space_id)
+            self._required(db, "bots", bot_id)
+            if row["bot_id"] != bot_id:
+                db.execute("UPDATE spaces SET bot_id=?, updated_at=? WHERE id=?", (bot_id, timestamp(), space_id))
+                self._insert_event(db, space_id, "space.rebound", {"from_bot_id": row["bot_id"], "bot_id": bot_id}, actor)
+            return self._space(self._required(db, "spaces", space_id))
+
     def resolve_space(self, bot_id, title):
         """Resolve/create an exact title atomically; never guess among duplicates."""
         if not isinstance(title, str) or not title.strip() or len(title.strip()) > 150:

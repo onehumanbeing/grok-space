@@ -52,7 +52,7 @@ class CliSurfaceTests(unittest.TestCase):
 
     def test_five_command_json_help_and_installation_verification(self):
         help_result = self.cli("--help")
-        self.assertEqual(set(help_result["commands"]), {"doctor", "open", "read", "publish", "action"})
+        self.assertEqual(set(help_result["commands"]), {"doctor", "open", "read", "publish", "action", "init"})
         self.assertFalse(self.data.exists(), "help must not initialize a database")
         self.assertEqual(set(self.cli("action", "--help")["commands"]), {"create", "get", "status", "complete", "fail", "worker"})
         self.assertEqual(self.cli("read"), {"bots": [], "spaces": []})
@@ -201,7 +201,8 @@ class CliSurfaceTests(unittest.TestCase):
         self.assertEqual(audit[0]["payload"]["event_id"], event["id"])
         self.assertEqual(self.cli("read", "--space", key)["revision"], 2)
         self.assertIn("action complete", action_prompt(Store(self.data), key, event))
-        prompt = setup_prompt(Store(self.data), key)
+        self.assertIn(" init --bot ", setup_prompt(Store(self.data), key))
+        prompt = setup_prompt(Store(self.data), key, full=True)
         self.assertIn("doctor --space", prompt)
         self.assertNotIn(" contract ", prompt)
         self.assertNotIn(" event complete ", prompt)
@@ -277,7 +278,7 @@ class CliSurfaceTests(unittest.TestCase):
         link = bin_dir / "grok-space"
         link.symlink_to("../Relocated App.app/Contents/Resources/grok-space")
         self.assertEqual(self.cli("read", launcher=link), {"bots": [], "spaces": []})
-        self.assertEqual(set(self.cli("--help", launcher=link)["commands"]), {"doctor", "open", "read", "publish", "action"})
+        self.assertEqual(set(self.cli("--help", launcher=link)["commands"]), {"doctor", "open", "read", "publish", "action", "init"})
 
     def test_show_launch_boundary_uses_argv_and_reports_only_acceptance(self):
         # Mock the OS launch boundary: tests never open an app or a user account.

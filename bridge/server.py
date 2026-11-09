@@ -121,6 +121,9 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as exc:
                     raise SpaceError("after must be an integer") from exc
                 return self._send(200, {"events": store.events(space_id, after, query.get("status", [None])[0])})
+            if self.command == "PATCH" and endpoint is None:
+                data = self._json_body()
+                return self._send(200, {"space": store.rebind_space(space_id, data.get("bot_id"))})
             if self.command == "PATCH" and endpoint == "state":
                 data = self._json_body()
                 return self._send(200, store.patch_state(space_id, data.get("patch"), data.get("expected_revision"), "user"))
@@ -137,8 +140,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"event": event, "prompt": action_prompt(store, space_id, event),
                                         "delivery": worker.get("delivery", "manual"), "worker": worker})
             if self.command == "POST" and endpoint == "setup-prompt":
-                self._json_body()
-                return self._send(200, {"prompt": setup_prompt(store, space_id)})
+                data = self._json_body()
+                return self._send(200, {"prompt": setup_prompt(store, space_id, full=data.get("mode") == "full")})
         if self.command == "GET" and not path.startswith("/api/"):
             return self._static(path)
         raise SpaceError("Endpoint not found", 404)
